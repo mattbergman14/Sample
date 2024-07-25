@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Area Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .calculator {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 400px;
+        }
+        select, input, button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #canvas {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+        }
+        #instructions, #answerSection {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9f7ef;
+            border-radius: 4px;
+        }
+        #feedback {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <h2>Interactive Area Calculator</h2>
+        <select id="shapeSelect">
+            <option value="rectangle">Rectangle</option>
+            <option value="triangle">Triangle</option>
+            <option value="circle">Circle</option>
+        </select>
+        <div id="rectangleInputs">
+            <input type="number" id="rectWidth" placeholder="Width">
+            <input type="number" id="rectHeight" placeholder="Height">
+        </div>
+        <div id="triangleInputs" style="display:none;">
+            <input type="number" id="triBase" placeholder="Base">
+            <input type="number" id="triHeight" placeholder="Height">
+        </div>
+        <div id="circleInputs" style="display:none;">
+            <input type="number" id="circleRadius" placeholder="Radius">
+        </div>
+        <button onclick="calculateArea()">Calculate Area</button>
+        <canvas id="canvas" width="400" height="300"></canvas>
+        <div id="instructions"></div>
+        <div id="answerSection" style="display:none;">
+            <h3>Your Turn!</h3>
+            <p>Calculate the area and enter your answer:</p>
+            <input type="number" id="studentAnswer" placeholder="Your answer">
+            <button onclick="checkAnswer()">Check Answer</button>
+            <p id="feedback"></p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let animationId;
+        let correctArea;
+
+        document.getElementById('shapeSelect').addEventListener('change', function() {
+            document.getElementById('rectangleInputs').style.display = 'none';
+            document.getElementById('triangleInputs').style.display = 'none';
+            document.getElementById('circleInputs').style.display = 'none';
+            document.getElementById(this.value + 'Inputs').style.display = 'block';
+        });
+
+        function calculateArea() {
+            const shape = document.getElementById('shapeSelect').value;
+            let area;
+            let instructions = "";
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            cancelAnimationFrame(animationId);
+
+            switch(shape) {
+                case 'rectangle':
+                    const width = parseFloat(document.getElementById('rectWidth').value);
+                    const height = parseFloat(document.getElementById('rectHeight').value);
+                    area = width * height;
+                    animateRectangle(width, height);
+                    instructions = `
+                        <h3>Steps to calculate rectangle area:</h3>
+                        <ol>
+                            <li>Identify the width (w) and height (h) of the rectangle.</li>
+                            <li>Use the formula: Area = width × height</li>
+                            <li>Multiply: ${width} × ${height}</li>
+                        </ol>
+                    `;
+                    break;
+                case 'triangle':
+                    const base = parseFloat(document.getElementById('triBase').value);
+                    const triHeight = parseFloat(document.getElementById('triHeight').value);
+                    area = 0.5 * base * triHeight;
+                    animateTriangle(base, triHeight);
+                    instructions = `
+                        <h3>Steps to calculate triangle area:</h3>
+                        <ol>
+                            <li>Identify the base (b) and height (h) of the triangle.</li>
+                            <li>Use the formula: Area = ½ × base × height</li>
+                            <li>Multiply: ½ × ${base} × ${triHeight}</li>
+                        </ol>
+                    `;
+                    break;
+                case 'circle':
+                    const radius = parseFloat(document.getElementById('circleRadius').value);
+                    area = Math.PI * radius * radius;
+                    animateCircle(radius);
+                    instructions = `
+                        <h3>Steps to calculate circle area:</h3>
+                        <ol>
+                            <li>Identify the radius (r) of the circle.</li>
+                            <li>Use the formula: Area = π × r²</li>
+                            <li>Square the radius: ${radius}² = ${radius * radius}</li>
+                            <li>Multiply by π: π × ${radius * radius}</li>
+                        </ol>
+                        <p>Note: π is approximately 3.14159</p>
+                    `;
+                    break;
+            }
+
+            correctArea = area;
+            document.getElementById('instructions').innerHTML = instructions;
+            document.getElementById('answerSection').style.display = 'block';
+            document.getElementById('studentAnswer').value = '';
+            document.getElementById('feedback').textContent = '';
+        }
+
+        function checkAnswer() {
+            const studentAnswer = parseFloat(document.getElementById('studentAnswer').value);
+            const feedback = document.getElementById('feedback');
+            
+            if (isNaN(studentAnswer)) {
+                feedback.textContent = "Please enter a valid number.";
+                feedback.style.color = "orange";
+            } else if (Math.abs(studentAnswer - correctArea) < 0.01) {
+                feedback.textContent = "Correct! Well done!";
+                feedback.style.color = "green";
+            } else {
+                feedback.textContent = `Not quite. The correct answer is ${correctArea.toFixed(2)}. Try again!`;
+                feedback.style.color = "red";
+            }
+        }
+
+        function animateRectangle(width, height) {
+            const scale = Math.min(300 / width, 200 / height);
+            const scaledWidth = width * scale;
+            const scaledHeight = height * scale;
+            let progress = 0;
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.rect(50, 50, scaledWidth * progress, scaledHeight * progress);
+                ctx.stroke();
+
+                if (progress < 1) {
+                    progress += 0.02;
+                    animationId = requestAnimationFrame(draw);
+                }
+            }
+
+            draw();
+        }
+
+        function animateTriangle(base, height) {
+            const scale = Math.min(300 / base, 200 / height);
+            const scaledBase = base * scale;
+            const scaledHeight = height * scale;
+            let progress = 0;
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.moveTo(50, 250);
+                ctx.lineTo(50 + scaledBase * progress, 250);
+                ctx.lineTo(50 + (scaledBase * progress) / 2, 250 - scaledHeight * progress);
+                ctx.closePath();
+                ctx.stroke();
+
+                if (progress < 1) {
+                    progress += 0.02;
+                    animationId = requestAnimationFrame(draw);
+                }
+            }
+
+            draw();
+        }
+
+        function animateCircle(radius) {
+            const scale = Math.min(150 / radius, 150 / radius);
+            const scaledRadius = radius * scale;
+            let progress = 0;
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.beginPath();
+                ctx.arc(200, 150, scaledRadius * progress, 0, Math.PI * 2 * progress);
+                ctx.stroke();
+
+                if (progress < 1) {
+                    progress += 0.02;
+                    animationId = requestAnimationFrame(draw);
+                }
+            }
+
+            draw();
+        }
+    </script>
+</body>
+</html>
